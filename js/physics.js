@@ -98,7 +98,7 @@ class SandPhysics {
 
                     while (queue.length > 0) {
                         const current = queue.shift();
-                        component.push(current);
+                        component.push({ x: current.x, y: current.y, color: color });
 
                         if (current.x === 0) hasLeftConnection = true;
                         if (current.x === this.width - 1) hasRightConnection = true;

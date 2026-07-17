@@ -240,15 +240,11 @@ class GameController {
     hardDrop() {
         if (this.state !== 'PLAYING' || !this.activeBlock) return;
         
-        let dropDistance = 0;
         while (this.isValidPosition(this.activeBlock.shape, this.activeBlock.bx, this.activeBlock.by + 1)) {
             this.activeBlock.by++;
-            dropDistance++;
         }
         
-        if (dropDistance > 0) {
-            this.lockActiveBlock();
-        }
+        this.lockActiveBlock();
     }
 
     lockActiveBlock() {
