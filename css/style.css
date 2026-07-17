@@ -337,21 +337,14 @@ body {
 
 /* Choices Drawer & Slots */
 .choices-drawer {
-    background: rgba(255, 255, 255, 0.02);
-    border: 2px solid var(--border-color);
-    border-radius: 16px;
-    padding: 10px 14px;
+    background: #202024; /* soft grey background */
+    border: 1.5px solid var(--border-color);
+    border-radius: 18px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-}
-
-.choices-label {
-    font-size: 9px;
-    font-weight: 800;
-    color: var(--color-text-muted);
-    letter-spacing: 1px;
 }
 
 .choice-slots {
@@ -365,8 +358,8 @@ body {
     background: transparent;
     border: none;
     border-radius: 0;
-    width: 80px;
-    height: 80px;
+    width: 90px;
+    height: 90px;
     display: flex;
     justify-content: center;
     align-items: center;

@@ -630,7 +630,7 @@ class GameController {
         const spanY = maxY - minY + 1;
         
         const scale = 4;
-        const cellSize = 2.09; // Size of each small grain in preview (5% smaller)
+        const cellSize = 3.08; // Size of each small grain in preview (40% larger)
         const unitSize = scale * cellSize; // Width/height of one tetromino unit (e.g. 8.8px)
         
         const offsetX = (canvas.width - spanX * unitSize) / 2 - minX * unitSize;
