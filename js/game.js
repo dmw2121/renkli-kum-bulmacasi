@@ -3,12 +3,13 @@ const GRID_WIDTH = 40;
 const GRID_HEIGHT = 54;
 const WARNING_ROW = 12; // 22% of height (represented by the dashed red line)
 
-// Color Palette with HSL values for deterministic texture rendering (exactly 4 colors)
+// Color Palette with HSL values for deterministic texture rendering (exactly 5 colors)
 const COLOR_PALETTE = {
     'cyan':   { h: 190, s: 95, l: 55, hex: '#00f5d4' },
     'yellow': { h: 50,  s: 100, l: 60, hex: '#fee440' },
     'purple': { h: 280, s: 85,  l: 58, hex: '#9b5de5' },
-    'red':    { h: 345, s: 90,  l: 55, hex: '#ff0054' }
+    'red':    { h: 345, s: 90,  l: 55, hex: '#ff0054' },
+    'green':  { h: 120, s: 80,  l: 52, hex: '#4ade80' }
 };
 
 // Tetromino Definitions (Offset list from pivot)
@@ -27,7 +28,7 @@ const TETROMINOES = {
         shape: [ {x: 0, y: -1}, {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0} ]
     },
     'S': {
-        color: 'cyan',
+        color: 'green',
         shape: [ {x: 0, y: -1}, {x: 1, y: -1}, {x: -1, y: 0}, {x: 0, y: 0} ]
     },
     'Z': {
@@ -39,7 +40,7 @@ const TETROMINOES = {
         shape: [ {x: -1, y: -1}, {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0} ]
     },
     'L': {
-        color: 'purple',
+        color: 'green',
         shape: [ {x: 1, y: -1}, {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0} ]
     }
 };
@@ -365,8 +366,8 @@ class GameController {
     }
 
     updateUI() {
-        if (this.highScoreEl) this.highScoreEl.textContent = this.highScore.toLocaleString('tr-TR');
-        if (this.scoreEl) this.scoreEl.textContent = this.score.toLocaleString('tr-TR');
+        if (this.highScoreEl) this.highScoreEl.textContent = this.highScore;
+        if (this.scoreEl) this.scoreEl.textContent = this.score;
         if (this.diamondEl) this.diamondEl.textContent = this.diamonds;
     }
 
@@ -629,7 +630,7 @@ class GameController {
         const spanY = maxY - minY + 1;
         
         const scale = 4;
-        const cellSize = 2.2; // Size of each small grain in preview
+        const cellSize = 2.09; // Size of each small grain in preview (5% smaller)
         const unitSize = scale * cellSize; // Width/height of one tetromino unit (e.g. 8.8px)
         
         const offsetX = (canvas.width - spanX * unitSize) / 2 - minX * unitSize;
@@ -680,25 +681,34 @@ class GameController {
         document.getElementById('resume-button').addEventListener('click', () => this.togglePause());
         document.getElementById('restart-button').addEventListener('click', () => this.startGame());
         document.getElementById('restart-from-pause').addEventListener('click', () => this.startGame());
-        document.getElementById('pause-button').addEventListener('click', () => this.togglePause());
+        const pauseBtn = document.getElementById('pause-button');
+        if (pauseBtn) pauseBtn.addEventListener('click', () => this.togglePause());
         
         // Powerups
-        document.getElementById('powerup-swap').addEventListener('click', () => this.swapActiveBlock());
-        document.getElementById('powerup-cyclone').addEventListener('click', () => {
-            if (this.cycloneAimActive) {
-                this.deactivateCycloneAim();
-            } else {
-                this.activateCycloneAim();
-            }
-        });
+        const swapBtn = document.getElementById('powerup-swap');
+        if (swapBtn) swapBtn.addEventListener('click', () => this.swapActiveBlock());
+        
+        const cycloneBtn = document.getElementById('powerup-cyclone');
+        if (cycloneBtn) {
+            cycloneBtn.addEventListener('click', () => {
+                if (this.cycloneAimActive) {
+                    this.deactivateCycloneAim();
+                } else {
+                    this.activateCycloneAim();
+                }
+            });
+        }
 
         // Add gift diamonds
-        document.getElementById('btn-add-diamonds').addEventListener('click', () => {
-            this.diamonds += 100;
-            localStorage.setItem('sandtrix_diamonds', this.diamonds);
-            audio.playPowerup();
-            this.updateUI();
-        });
+        const addDiamondsBtn = document.getElementById('btn-add-diamonds');
+        if (addDiamondsBtn) {
+            addDiamondsBtn.addEventListener('click', () => {
+                this.diamonds += 100;
+                localStorage.setItem('sandtrix_diamonds', this.diamonds);
+                audio.playPowerup();
+                this.updateUI();
+            });
+        }
 
         // Board Clicking for Cyclone
         this.canvas.addEventListener('click', (e) => {
