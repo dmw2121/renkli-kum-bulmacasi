@@ -71,15 +71,66 @@ class Particle {
     }
 }
 
+function hslToRgb(h, s, l) {
+    h = (h % 360 + 360) % 360;
+    s /= 100;
+    l /= 100;
+    let c = (1 - Math.abs(2 * l - 1)) * s;
+    let x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    let m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+    
+    if (0 <= h && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+        r = x; g = 0; b = c;
+    } else if (300 <= h && h <= 360) {
+        r = c; g = 0; b = x;
+    }
+    
+    return [
+        Math.round((r + m) * 255),
+        Math.round((g + m) * 255),
+        Math.round((b + m) * 255)
+    ];
+}
+
 class GameController {
     constructor() {
         this.physics = new SandPhysics(GRID_WIDTH, GRID_HEIGHT);
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
+        this.ctx.imageSmoothingEnabled = false; // Crisp pixelated scaling
         
         // Canvas cell sizes
         this.cellW = this.canvas.width / GRID_WIDTH;
         this.cellH = this.canvas.height / GRID_HEIGHT;
+
+        // Offscreen Canvas Initialization
+        this.offscreenCanvas = document.createElement('canvas');
+        this.offscreenCanvas.width = GRID_WIDTH;
+        this.offscreenCanvas.height = GRID_HEIGHT;
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+        this.offscreenImgData = this.offscreenCtx.createImageData(GRID_WIDTH, GRID_HEIGHT);
+
+        // Precompute color cache
+        this.colorCache = {};
+        for (const [name, pal] of Object.entries(COLOR_PALETTE)) {
+            this.colorCache[name] = [];
+            for (let hMod = -4; hMod <= 4; hMod++) {
+                this.colorCache[name][hMod + 4] = [];
+                for (let lMod = -6; lMod <= 6; lMod++) {
+                    const rgb = hslToRgb(pal.h + hMod, pal.s, pal.l + lMod);
+                    this.colorCache[name][hMod + 4][lMod + 6] = rgb;
+                }
+            }
+        }
 
         // Choice Canvases
         this.choiceCanvases = [
@@ -429,7 +480,7 @@ class GameController {
         else if (this.state === 'SETTLING') {
             // Run physics engine gravity updates multiple times per frame to speed up settling
             let sandMoved = false;
-            for (let i = 0; i < 9; i++) {
+            for (let i = 0; i < 4; i++) {
                 if (this.physics.updateSand()) {
                     sandMoved = true;
                 }
@@ -508,23 +559,31 @@ class GameController {
         this.ctx.fillStyle = 'rgba(255, 0, 84, 0.03)';
         this.ctx.fillRect(0, 0, this.canvas.width, WARNING_ROW * this.cellH);
 
-        // Draw Sand Grid with deterministic noise shading
+        // Draw Sand Grid with high-performance ImageData offscreen canvas stretch
+        const imgData = this.offscreenImgData;
+        const data = imgData.data;
+        data.fill(0); // Clear offscreen buffer to fully transparent
+        
         for (let y = 0; y < GRID_HEIGHT; y++) {
             for (let x = 0; x < GRID_WIDTH; x++) {
                 const colorKey = this.physics.grid[y][x];
                 if (colorKey !== 0) {
-                    const pal = COLOR_PALETTE[colorKey];
-                    if (pal) {
-                        // Apply deterministic grain shading based on coords
-                        const hueMod = ((x * 17 + y * 23) % 9) - 4; // -4 to +4
-                        const lightMod = ((x * 37 + y * 43) % 13) - 6; // -6 to +6
-                        
-                        this.ctx.fillStyle = `hsl(${pal.h + hueMod}, ${pal.s}%, ${pal.l + lightMod}%)`;
-                        this.ctx.fillRect(x * this.cellW, y * this.cellH, this.cellW, this.cellH);
+                    const hueMod = ((x * 17 + y * 23) % 9) - 4; // -4 to +4
+                    const lightMod = ((x * 37 + y * 43) % 13) - 6; // -6 to +6
+                    const rgb = this.colorCache[colorKey]?.[hueMod + 4]?.[lightMod + 6];
+                    if (rgb) {
+                        const idx = (y * GRID_WIDTH + x) * 4;
+                        data[idx] = rgb[0];
+                        data[idx + 1] = rgb[1];
+                        data[idx + 2] = rgb[2];
+                        data[idx + 3] = 255; // opaque
                     }
                 }
             }
         }
+        
+        this.offscreenCtx.putImageData(imgData, 0, 0);
+        this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
 
         // Draw Active Block (Neon glow + granular layout) during rapid fall
         if (this.activeBlock) {

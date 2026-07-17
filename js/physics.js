@@ -23,8 +23,25 @@ class SandPhysics {
         let moved = false;
         this.leftToRightScan = !this.leftToRightScan;
 
-        // Scan from bottom to top (row height-2 down to 0)
-        for (let y = this.height - 2; y >= 0; y--) {
+        // Optimize: Find the highest row that actually contains sand
+        let highestY = this.height - 2;
+        for (let y = 0; y < this.height; y++) {
+            let rowHasSand = false;
+            for (let x = 0; x < this.width; x++) {
+                if (this.grid[y][x] !== 0) {
+                    highestY = y;
+                    rowHasSand = true;
+                    break;
+                }
+            }
+            if (rowHasSand) break;
+        }
+
+        // Start scanning from 2 rows above the highest sand particle for safety
+        const startY = Math.max(0, highestY - 2);
+
+        // Scan from bottom to top (row height-2 down to startY)
+        for (let y = this.height - 2; y >= startY; y--) {
             // Alternate x scanning direction to prevent sand piling up bias on one side
             if (this.leftToRightScan) {
                 for (let x = 0; x < this.width; x++) {
