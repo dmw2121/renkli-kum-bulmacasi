@@ -1,7 +1,7 @@
 // Game Configuration and State Management
-const GRID_WIDTH = 40;
-const GRID_HEIGHT = 54;
-const WARNING_ROW = 12; // 22% of height (represented by the dashed red line)
+const GRID_WIDTH = 120;
+const GRID_HEIGHT = 162;
+const WARNING_ROW = 36; // 22% of height (represented by the dashed red line)
 
 // Color Palette with HSL values for deterministic texture rendering (exactly 5 colors)
 const COLOR_PALETTE = {
@@ -172,7 +172,7 @@ class GameController {
         this.drawPreviews();
     }
 
-    getHighResCells(bx, by, shape, scale = 4) {
+    getHighResCells(bx, by, shape, scale = 12) {
         const cells = [];
         shape.forEach(offset => {
             for (let dy = 0; dy < scale; dy++) {
@@ -300,7 +300,7 @@ class GameController {
             localStorage.setItem('sandtrix_diamonds', this.diamonds);
             
             // Run explosion
-            const radius = 6; // Grid cells radius
+            const radius = 18; // Grid cells radius (multiplied by 3 for 3x grid)
             const cleared = this.physics.clearCircle(gridX, gridY, radius);
             
             // Spawn swirl/cyclone particles
@@ -429,7 +429,7 @@ class GameController {
         else if (this.state === 'SETTLING') {
             // Run physics engine gravity updates multiple times per frame to speed up settling
             let sandMoved = false;
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 9; i++) {
                 if (this.physics.updateSand()) {
                     sandMoved = true;
                 }
@@ -569,7 +569,7 @@ class GameController {
             }
             
             // 2. Draw Dragged Block centered under finger/cursor
-            const scale = 4;
+            const scale = 12;
             let minX = 99, maxX = -99, minY = 99, maxY = -99;
             this.dragBlock.shape.forEach(pt => {
                 if (pt.x < minX) minX = pt.x;
@@ -637,8 +637,8 @@ class GameController {
         const spanX = maxX - minX + 1;
         const spanY = maxY - minY + 1;
         
-        const scale = 4;
-        const cellSize = 3.08; // Size of each small grain in preview (40% larger)
+        const scale = 12;
+        const cellSize = 3.08 / 3; // Size of each small grain in preview (40% larger)
         const unitSize = scale * cellSize; // Width/height of one tetromino unit (e.g. 8.8px)
         
         const offsetX = (canvas.width - spanX * unitSize) / 2 - minX * unitSize;
@@ -771,7 +771,7 @@ class GameController {
                 const xLocal = (e.clientX - rect.left) * (this.canvas.width / rect.width);
                 const yLocal = (e.clientY - rect.top) * (this.canvas.height / rect.height);
                 
-                const scale = 4;
+                const scale = 12;
                 const gx = Math.floor(xLocal / this.cellW);
                 const gy = Math.floor(yLocal / this.cellH);
                 
