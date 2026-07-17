@@ -366,44 +366,58 @@ body {
     background: rgba(255, 255, 255, 0.15);
 }
 
-/* Next Queue Box */
-.queue-drawer {
+/* Choices Drawer & Slots */
+.choices-drawer {
     background: rgba(25, 22, 43, 0.5);
     border: 2px solid var(--border-color);
     border-radius: 16px;
     padding: 10px 14px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
 }
 
-.queue-label {
-    font-size: 11px;
+.choices-label {
+    font-size: 9px;
     font-weight: 800;
     color: var(--color-text-muted);
-    letter-spacing: 1.5px;
+    letter-spacing: 1px;
 }
 
-.queue-blocks {
+.choice-slots {
     display: flex;
-    gap: 12px;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
 }
 
-.next-preview-box {
+.choice-slot {
     background: #07050e;
-    border: 1.5px solid var(--border-color);
-    border-radius: 8px;
-    width: 48px;
-    height: 48px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    width: 80px;
+    height: 80px;
     display: flex;
     justify-content: center;
     align-items: center;
+    cursor: grab;
     position: relative;
     overflow: hidden;
+    transition: all 0.2s ease;
 }
 
-.next-preview-box canvas {
+.choice-slot:hover {
+    border-color: var(--color-secondary);
+    box-shadow: var(--glow-secondary);
+    transform: translateY(-2px);
+}
+
+.choice-slot:active {
+    cursor: grabbing;
+}
+
+.choice-slot canvas {
     width: 100%;
     height: 100%;
 }
@@ -598,98 +612,7 @@ body {
     border: 1px solid var(--color-secondary);
 }
 
-/* Mobile Controls Panel */
-.mobile-controls-panel {
-    display: none; /* Displayed dynamically on mobile */
-    width: 100%;
-    flex-direction: column;
-    gap: 10px;
-    background: rgba(25, 22, 43, 0.6);
-    border: 2px solid var(--border-color);
-    border-radius: 20px;
-    padding: 14px;
-    position: relative;
-}
 
-.mobile-controls-panel.active {
-    display: flex;
-}
-
-.dpad {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-}
-
-.actions {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-}
-
-.ctrl-btn {
-    background: rgba(155, 93, 229, 0.12);
-    border: 2.5px solid var(--border-color);
-    color: var(--color-text);
-    border-radius: 14px;
-    font-size: 20px;
-    font-weight: 800;
-    width: 60px;
-    height: 48px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: background 0.1s ease, border-color 0.1s ease;
-}
-
-.ctrl-btn:active {
-    background: rgba(155, 93, 229, 0.35);
-    border-color: var(--color-primary);
-    transform: scale(0.95);
-}
-
-.rotate-btn {
-    background: rgba(0, 255, 212, 0.08);
-    border-color: rgba(0, 255, 212, 0.3);
-    color: var(--color-secondary);
-}
-
-.rotate-btn:active {
-    background: rgba(0, 255, 212, 0.25);
-    border-color: var(--color-secondary);
-}
-
-.hard-drop-btn {
-    flex-grow: 1;
-    max-width: 135px;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 1px;
-}
-
-.btn-toggle {
-    position: absolute;
-    right: 12px;
-    top: -12px;
-    background: var(--bg-cabinet);
-    border: 1.5px solid var(--border-color);
-    color: var(--color-text-muted);
-    border-radius: 50%;
-    width: 26px;
-    height: 26px;
-    font-size: 12px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    z-index: 10;
-}
-
-.btn-toggle:hover {
-    color: var(--color-text);
-    border-color: var(--color-primary);
-}
 
 /* Shake Animation */
 .shake-screen {

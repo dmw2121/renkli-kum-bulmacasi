@@ -92,15 +92,18 @@
                 </div>
             </div>
 
-            <!-- Queue Area (Next Blocks) -->
-            <div class="queue-drawer">
-                <span class="queue-label">SIRADAKİ:</span>
-                <div class="queue-blocks">
-                    <div class="next-preview-box" id="next-preview-1">
-                        <canvas id="preview-canvas-1" width="50" height="50"></canvas>
+            <!-- Choices Area (3 Drag-and-Drop options) -->
+            <div class="choices-drawer">
+                <span class="choices-label">DÖNDÜRMEK İÇİN TIKLA, SÜRÜKLE BIRAK:</span>
+                <div class="choice-slots">
+                    <div class="choice-slot" id="choice-0" title="Döndürmek için tıkla, yerleştirmek için sürükle">
+                        <canvas id="choice-canvas-0" width="80" height="80"></canvas>
                     </div>
-                    <div class="next-preview-box" id="next-preview-2">
-                        <canvas id="preview-canvas-2" width="50" height="50"></canvas>
+                    <div class="choice-slot" id="choice-1" title="Döndürmek için tıkla, yerleştirmek için sürükle">
+                        <canvas id="choice-canvas-1" width="80" height="80"></canvas>
+                    </div>
+                    <div class="choice-slot" id="choice-2" title="Döndürmek için tıkla, yerleştirmek için sürükle">
+                        <canvas id="choice-canvas-2" width="80" height="80"></canvas>
                     </div>
                 </div>
             </div>
@@ -129,20 +132,6 @@
                     <button id="btn-add-diamonds" class="btn-plus" title="Hediye Elmas Al">+</button>
                 </div>
             </div>
-        </div>
-
-        <!-- Touch Controls for Mobile (shown on mobile, toggleable) -->
-        <div class="mobile-controls-panel" id="mobile-controls">
-            <div class="dpad">
-                <button id="btn-left" class="ctrl-btn">◀</button>
-                <button id="btn-rotate" class="ctrl-btn rotate-btn">▲</button>
-                <button id="btn-right" class="ctrl-btn">▶</button>
-            </div>
-            <div class="actions">
-                <button id="btn-softdrop" class="ctrl-btn">▼</button>
-                <button id="btn-harddrop" class="ctrl-btn hard-drop-btn">DÜŞÜR</button>
-            </div>
-            <button id="btn-toggle-controls" class="btn-toggle" title="Kontrolleri Gizle/Göster">⌨</button>
         </div>
     </div>
 

@@ -83,11 +83,13 @@ class GameController {
         this.cellW = this.canvas.width / GRID_WIDTH;
         this.cellH = this.canvas.height / GRID_HEIGHT;
 
-        // Preview Canvases
-        this.previewCanvas1 = document.getElementById('preview-canvas-1');
-        this.previewCtx1 = this.previewCanvas1.getContext('2d');
-        this.previewCanvas2 = document.getElementById('preview-canvas-2');
-        this.previewCtx2 = this.previewCanvas2.getContext('2d');
+        // Choice Canvases
+        this.choiceCanvases = [
+            document.getElementById('choice-canvas-0'),
+            document.getElementById('choice-canvas-1'),
+            document.getElementById('choice-canvas-2')
+        ];
+        this.choiceContexts = this.choiceCanvases.map(canvas => canvas.getContext('2d'));
         
         // Game state variables
         this.score = 0;
@@ -98,20 +100,28 @@ class GameController {
         this.pointsAccumulatedThisLevel = 0;
 
         this.activeBlock = null;
-        this.nextQueue = [];
+        this.choiceBlocks = [null, null, null]; // 3 draggable blocks
         this.particles = [];
         
-        // State Machine states: 'START', 'PLAYING', 'SETTLING', 'CLEARING', 'PAUSED', 'GAMEOVER'
+        // State Machine states: 'START', 'PLAYING', 'DROPPING', 'SETTLING', 'CLEARING', 'PAUSED', 'GAMEOVER'
         this.state = 'START';
-        
-        this.tickCounter = 0;
-        this.tickLimit = 40; // frames per grid step (lower is faster)
-        this.isFastDropping = false;
         
         this.clearingCells = [];
         this.clearingTimer = 0;
         
         this.cycloneAimActive = false;
+
+        // Drag and drop state variables
+        this.dragActive = false;
+        this.dragSlotIdx = -1;
+        this.dragBlock = null;
+        this.dragStartPos = { x: 0, y: 0 };
+        this.dragStartTime = 0;
+        this.pointerPos = { x: 0, y: 0 };
+        
+        // Ghost placement calculation
+        this.ghostBx = 0;
+        this.ghostLandingBy = 0;
 
         // UI elements
         this.levelEl = document.getElementById('level-value');
@@ -130,25 +140,31 @@ class GameController {
         // Setup initial score display
         this.updateUI();
         this.setupEventListeners();
-        this.fillQueue();
+        this.fillChoices();
 
         // Start animation loop
         this.loop();
     }
 
-    fillQueue() {
+    getRandomBlock() {
         const types = Object.keys(TETROMINOES);
-        while (this.nextQueue.length < 5) {
-            const randomType = types[Math.floor(Math.random() * types.length)];
-            // Clone block template
-            const template = TETROMINOES[randomType];
-            this.nextQueue.push({
-                type: randomType,
-                color: template.color,
-                shape: template.shape.map(offset => ({ ...offset })),
-                noRotate: template.noRotate || false
-            });
+        const randomType = types[Math.floor(Math.random() * types.length)];
+        const template = TETROMINOES[randomType];
+        return {
+            type: randomType,
+            color: template.color,
+            shape: template.shape.map(offset => ({ ...offset })),
+            noRotate: template.noRotate || false
+        };
+    }
+
+    fillChoices() {
+        for (let i = 0; i < 3; i++) {
+            if (this.choiceBlocks[i] === null) {
+                this.choiceBlocks[i] = this.getRandomBlock();
+            }
         }
+        this.drawPreviews();
     }
 
     getHighResCells(bx, by, shape, scale = 4) {
@@ -166,25 +182,6 @@ class GameController {
         return cells;
     }
 
-    spawnBlock() {
-        this.fillQueue();
-        this.activeBlock = this.nextQueue.shift();
-        
-        // Position at top center (high-res coordinates)
-        this.activeBlock.bx = Math.floor(GRID_WIDTH / 2);
-        this.activeBlock.by = 4; // Spawn slightly below the top to fit shape
-        
-        this.isFastDropping = false;
-        this.tickCounter = 0;
-        
-        // Check initial collision (Game Over)
-        if (!this.isValidPosition(this.activeBlock.shape, this.activeBlock.bx, this.activeBlock.by)) {
-            this.triggerGameOver();
-        }
-        
-        this.drawPreviews();
-    }
-
     isValidPosition(shape, bx, by) {
         const cells = this.getHighResCells(bx, by, shape);
         for (const cell of cells) {
@@ -193,7 +190,7 @@ class GameController {
                 return false;
             }
             
-            // Allow pieces to rotate above top threshold (gy < 0 is fine, but check grid bounds)
+            // Allow pieces above top threshold (gy < 0 is fine, but check grid bounds)
             if (cell.y >= 0) {
                 if (this.physics.grid[cell.y][cell.x] !== 0) {
                     return false; // collides with existing sand
@@ -203,66 +200,8 @@ class GameController {
         return true;
     }
 
-    moveActiveBlock(dx, dy) {
-        if (this.state !== 'PLAYING' || !this.activeBlock) return false;
-        
-        if (this.isValidPosition(this.activeBlock.shape, this.activeBlock.bx + dx, this.activeBlock.by + dy)) {
-            this.activeBlock.bx += dx;
-            this.activeBlock.by += dy;
-            if (dx !== 0) audio.playMove();
-            return true;
-        }
-        
-        return false;
-    }
-
-    rotateActiveBlock() {
-        if (this.state !== 'PLAYING' || !this.activeBlock || this.activeBlock.noRotate) return;
-        
-        // Rotate: (x, y) -> (-y, x)
-        const rotatedShape = this.activeBlock.shape.map(offset => ({
-            x: -offset.y,
-            y: offset.x
-        }));
-        
-        // Try simple rotation
-        if (this.isValidPosition(rotatedShape, this.activeBlock.bx, this.activeBlock.by)) {
-            this.activeBlock.shape = rotatedShape;
-            audio.playRotate();
-            return;
-        }
-        
-        // Wall kick logic: try shifting unit-steps (4 cells) and micro-steps (1-3 cells)
-        const kicks = [
-            { dx: -4, dy: 0 }, { dx: 4, dy: 0 },
-            { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
-            { dx: -2, dy: 0 }, { dx: 2, dy: 0 },
-            { dx: -3, dy: 0 }, { dx: 3, dy: 0 },
-            { dx: 0, dy: -4 }, { dx: 0, dy: -1 }
-        ];
-        
-        for (const kick of kicks) {
-            if (this.isValidPosition(rotatedShape, this.activeBlock.bx + kick.dx, this.activeBlock.by + kick.dy)) {
-                this.activeBlock.bx += kick.dx;
-                this.activeBlock.by += kick.dy;
-                this.activeBlock.shape = rotatedShape;
-                audio.playRotate();
-                return;
-            }
-        }
-    }
-
-    hardDrop() {
-        if (this.state !== 'PLAYING' || !this.activeBlock) return;
-        
-        while (this.isValidPosition(this.activeBlock.shape, this.activeBlock.bx, this.activeBlock.by + 1)) {
-            this.activeBlock.by++;
-        }
-        
-        this.lockActiveBlock();
-    }
-
     lockActiveBlock() {
+        if (!this.activeBlock) return;
         const cells = this.getHighResCells(this.activeBlock.bx, this.activeBlock.by, this.activeBlock.shape);
         
         // Disintegrate block into sand grains
@@ -299,12 +238,12 @@ class GameController {
         this.state = 'SETTLING';
     }
 
-    // Swaps current block with the first item in the next queue
+    // Swaps all 3 block choices for 50 diamonds
     swapActiveBlock() {
-        if (this.state !== 'PLAYING' || !this.activeBlock) return;
+        if (this.state !== 'PLAYING') return;
         
         if (this.diamonds < 50) {
-            alert("Yetersiz Elmas! Şekil değiştirmek için 50 elmas gerekir.");
+            alert("Yetersiz Elmas! Şekilleri yenilemek için 50 elmas gerekir.");
             return;
         }
 
@@ -313,13 +252,8 @@ class GameController {
         localStorage.setItem('sandtrix_diamonds', this.diamonds);
         audio.playPowerup();
         
-        // Perform Swap
-        const nextTemp = this.nextQueue.shift();
-        nextTemp.bx = Math.floor(GRID_WIDTH / 2);
-        nextTemp.by = 2;
-        
-        this.nextQueue.unshift(this.activeBlock); // Put current block in front of next queue
-        this.activeBlock = nextTemp;
+        // Reroll all choices
+        this.choiceBlocks = [this.getRandomBlock(), this.getRandomBlock(), this.getRandomBlock()];
         
         this.updateUI();
         this.drawPreviews();
@@ -460,10 +394,10 @@ class GameController {
         this.score = 0;
         this.pointsAccumulatedThisLevel = 0;
         this.level = 1;
-        this.tickLimit = 40;
         this.particles = [];
         this.physics.initGrid();
-        this.nextQueue = [];
+        this.choiceBlocks = [null, null, null];
+        this.activeBlock = null;
         
         this.startScreen.classList.remove('active');
         this.pauseScreen.classList.remove('active');
@@ -475,7 +409,7 @@ class GameController {
         audio.init();
         audio.startMusic();
         
-        this.spawnBlock();
+        this.fillChoices();
     }
 
     // Game loop called 60 times/sec
@@ -491,17 +425,18 @@ class GameController {
         this.particles = this.particles.filter(p => p.life > 0);
 
         if (this.state === 'PLAYING') {
-            this.tickCounter++;
-            const limit = this.isFastDropping ? 3 : this.tickLimit;
-            
-            if (this.tickCounter >= limit) {
-                this.tickCounter = 0;
-                // Move down
-                if (!this.moveActiveBlock(0, 1)) {
+            // Idle waiting for drag and drop placement
+        } 
+        else if (this.state === 'DROPPING') {
+            // Block falls rapidly after drop
+            if (this.activeBlock) {
+                this.activeBlock.by += 2;
+                if (this.activeBlock.by >= this.activeBlock.targetBy) {
+                    this.activeBlock.by = this.activeBlock.targetBy;
                     this.lockActiveBlock();
                 }
             }
-        } 
+        }
         else if (this.state === 'SETTLING') {
             // Run physics engine gravity updates multiple times per frame to speed up settling
             let sandMoved = false;
@@ -532,9 +467,9 @@ class GameController {
                     if (crossedWarning) {
                         this.triggerGameOver();
                     } else {
-                        // Re-spawn new block
+                        // Refill choice slots and wait for player's next move
+                        this.fillChoices();
                         this.state = 'PLAYING';
-                        this.spawnBlock();
                     }
                 }
             }
@@ -602,8 +537,8 @@ class GameController {
             }
         }
 
-        // Draw Active Block (Neon glow + granular layout)
-        if (this.state === 'PLAYING' && this.activeBlock) {
+        // Draw Active Block (Neon glow + granular layout) during rapid fall
+        if (this.activeBlock) {
             const pal = COLOR_PALETTE[this.activeBlock.color];
             const cells = this.getHighResCells(this.activeBlock.bx, this.activeBlock.by, this.activeBlock.shape);
             
@@ -613,14 +548,64 @@ class GameController {
             
             cells.forEach(cell => {
                 if (cell.y >= 0) {
-                    // Draw grain filled block
                     this.ctx.fillStyle = pal.hex;
                     this.ctx.fillRect(cell.x * this.cellW, cell.y * this.cellH, this.cellW, this.cellH);
-                    
-                    // Draw subtle grid outline for grain texture
                     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
                     this.ctx.lineWidth = 1;
                     this.ctx.strokeRect(cell.x * this.cellW + 0.5, cell.y * this.cellH + 0.5, this.cellW - 1, this.cellH - 1);
+                }
+            });
+            this.ctx.restore();
+        }
+
+        // Draw Ghost Block & Dragging Block during drag-and-drop
+        if (this.state === 'PLAYING' && this.dragActive && this.dragBlock) {
+            const pal = COLOR_PALETTE[this.dragBlock.color];
+            
+            // 1. Draw Ghost Block Landing Spot (translucent)
+            if (this.ghostLandingBy >= 0) {
+                const ghostCells = this.getHighResCells(this.ghostBx, this.ghostLandingBy, this.dragBlock.shape);
+                this.ctx.save();
+                this.ctx.globalAlpha = 0.25;
+                ghostCells.forEach(cell => {
+                    if (cell.y >= 0) {
+                        this.ctx.fillStyle = pal.hex;
+                        this.ctx.fillRect(cell.x * this.cellW, cell.y * this.cellH, this.cellW, this.cellH);
+                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                        this.ctx.lineWidth = 1;
+                        this.ctx.strokeRect(cell.x * this.cellW + 0.5, cell.y * this.cellH + 0.5, this.cellW - 1, this.cellH - 1);
+                    }
+                });
+                this.ctx.restore();
+            }
+            
+            // 2. Draw Dragged Block centered under finger/cursor
+            const scale = 4;
+            let minX = 99, maxX = -99, minY = 99, maxY = -99;
+            this.dragBlock.shape.forEach(pt => {
+                if (pt.x < minX) minX = pt.x;
+                if (pt.x > maxX) maxX = pt.x;
+                if (pt.y < minY) minY = pt.y;
+                if (pt.y > maxY) maxY = pt.y;
+            });
+            const cx = (minX + maxX) / 2;
+            const cy = (minY + maxY) / 2;
+
+            this.ctx.save();
+            this.ctx.shadowBlur = 10;
+            this.ctx.shadowColor = pal.hex;
+            this.ctx.fillStyle = pal.hex;
+            
+            this.dragBlock.shape.forEach(pt => {
+                for (let dy = 0; dy < scale; dy++) {
+                    for (let dx = 0; dx < scale; dx++) {
+                        const px = this.pointerPos.x + (pt.x - cx) * scale * this.cellW + dx * this.cellW;
+                        const py = this.pointerPos.y + (pt.y - cy) * scale * this.cellH + dy * this.cellH;
+                        
+                        this.ctx.fillRect(px, py, this.cellW, this.cellH);
+                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                        this.ctx.strokeRect(px + 0.5, py + 0.5, this.cellW - 1, this.cellH - 1);
+                    }
                 }
             });
             this.ctx.restore();
@@ -639,9 +624,9 @@ class GameController {
     }
 
     drawPreviews() {
-        // Draw Next Preview Canvases
-        this.drawSinglePreview(this.previewCtx1, this.previewCanvas1, this.nextQueue[0]);
-        this.drawSinglePreview(this.previewCtx2, this.previewCanvas2, this.nextQueue[1]);
+        for (let i = 0; i < 3; i++) {
+            this.drawSinglePreview(this.choiceContexts[i], this.choiceCanvases[i], this.choiceBlocks[i]);
+        }
     }
 
     drawSinglePreview(ctx, canvas, block) {
@@ -688,56 +673,25 @@ class GameController {
         ctx.restore();
     }
 
-    setupEventListeners() {
-        // Keyboard controls
-        window.addEventListener('keydown', (e) => {
-            if (this.state !== 'PLAYING') {
-                // Allow Space to start or restart on overlays
-                if (e.code === 'Space') {
-                    if (this.state === 'START' || this.state === 'GAMEOVER') {
-                        this.startGame();
-                        e.preventDefault();
-                    }
-                }
-                return;
-            }
+    updatePointerPos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.pointerPos.x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+        this.pointerPos.y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+    }
 
-            switch(e.code) {
-                case 'ArrowLeft':
-                case 'KeyA':
-                    this.moveActiveBlock(-1, 0);
+    setupEventListeners() {
+        // Keyboard controls (only Space to start/restart, Escape/P to pause)
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (this.state === 'START' || this.state === 'GAMEOVER') {
+                    this.startGame();
                     e.preventDefault();
-                    break;
-                case 'ArrowRight':
-                case 'KeyD':
-                    this.moveActiveBlock(1, 0);
-                    e.preventDefault();
-                    break;
-                case 'ArrowUp':
-                case 'KeyW':
-                    this.rotateActiveBlock();
-                    e.preventDefault();
-                    break;
-                case 'ArrowDown':
-                case 'KeyS':
-                    this.isFastDropping = true;
-                    e.preventDefault();
-                    break;
-                case 'Space':
-                    this.hardDrop();
-                    e.preventDefault();
-                    break;
-                case 'Escape':
-                case 'KeyP':
+                }
+            } else if (e.code === 'Escape' || e.code === 'KeyP') {
+                if (this.state === 'PLAYING' || this.state === 'PAUSED') {
                     this.togglePause();
                     e.preventDefault();
-                    break;
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-                this.isFastDropping = false;
+                }
             }
         });
 
@@ -782,29 +736,123 @@ class GameController {
             }
         });
 
-        // Mobile Controls setup
-        // Show/hide touch controls on click
-        document.getElementById('btn-toggle-controls').addEventListener('click', () => {
-            const panel = document.getElementById('mobile-controls');
-            panel.classList.toggle('active');
-        });
+        // Drag and Drop Dragging & Tap-to-Rotate Pointer events on choice slots
+        for (let idx = 0; idx < 3; idx++) {
+            const slot = document.getElementById(`choice-${idx}`);
+            
+            slot.addEventListener('pointerdown', (e) => {
+                if (this.state !== 'PLAYING' || this.cycloneAimActive || !this.choiceBlocks[idx]) return;
+                
+                this.dragActive = true;
+                this.dragSlotIdx = idx;
+                this.dragBlock = this.choiceBlocks[idx];
+                this.dragStartTime = Date.now();
+                this.dragStartPos = { x: e.clientX, y: e.clientY };
+                
+                this.updatePointerPos(e);
+                slot.setPointerCapture(e.pointerId);
+                e.preventDefault();
+            });
 
-        // D-Pad Touch events
-        document.getElementById('btn-left').addEventListener('pointerdown', () => this.moveActiveBlock(-1, 0));
-        document.getElementById('btn-right').addEventListener('pointerdown', () => this.moveActiveBlock(1, 0));
-        document.getElementById('btn-rotate').addEventListener('pointerdown', () => this.rotateActiveBlock());
-        
-        const softDropBtn = document.getElementById('btn-softdrop');
-        softDropBtn.addEventListener('pointerdown', () => { this.isFastDropping = true; });
-        softDropBtn.addEventListener('pointerup', () => { this.isFastDropping = false; });
-        softDropBtn.addEventListener('pointerleave', () => { this.isFastDropping = false; });
-        
-        document.getElementById('btn-harddrop').addEventListener('pointerdown', () => this.hardDrop());
+            slot.addEventListener('pointermove', (e) => {
+                if (!this.dragActive || this.dragSlotIdx !== idx) return;
+                
+                this.updatePointerPos(e);
+                
+                // Bounding box of the standard block units
+                let minX = 99, maxX = -99, minY = 99, maxY = -99;
+                this.dragBlock.shape.forEach(pt => {
+                    if (pt.x < minX) minX = pt.x;
+                    if (pt.x > maxX) maxX = pt.x;
+                    if (pt.y < minY) minY = pt.y;
+                    if (pt.y > maxY) maxY = pt.y;
+                });
+                
+                // Convert screen coordinates to canvas coordinates
+                const rect = this.canvas.getBoundingClientRect();
+                const xLocal = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+                
+                const scale = 4;
+                const gx = Math.floor(xLocal / this.cellW);
+                const cx = Math.floor((minX + maxX) / 2);
+                
+                // Align block horizontal position centered on pointer
+                this.ghostBx = gx - cx * scale;
+                
+                // Clamp bx so all units fall within GRID_WIDTH
+                const minHighResX = minX * scale;
+                const maxHighResX = maxX * scale + (scale - 1);
+                
+                if (this.ghostBx + minHighResX < 0) {
+                    this.ghostBx = -minHighResX;
+                }
+                if (this.ghostBx + maxHighResX >= GRID_WIDTH) {
+                    this.ghostBx = GRID_WIDTH - 1 - maxHighResX;
+                }
+                
+                // Find landing spot by dropping down vertically
+                let by = 0;
+                while (by < GRID_HEIGHT && this.isValidPosition(this.dragBlock.shape, this.ghostBx, by)) {
+                    by++;
+                }
+                this.ghostLandingBy = by - 1;
+                
+                e.preventDefault();
+            });
 
-        // Check if user is on mobile to auto-enable mobile UI
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile) {
-            document.getElementById('mobile-controls').classList.add('active');
+            slot.addEventListener('pointerup', (e) => {
+                if (!this.dragActive || this.dragSlotIdx !== idx) return;
+                
+                slot.releasePointerCapture(e.pointerId);
+                
+                const duration = Date.now() - this.dragStartTime;
+                const dx = e.clientX - this.dragStartPos.x;
+                const dy = e.clientY - this.dragStartPos.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // If quick tap, rotate block clockwise
+                if (duration < 250 && dist < 8) {
+                    if (!this.dragBlock.noRotate) {
+                        const rotated = this.dragBlock.shape.map(pt => ({
+                            x: -pt.y,
+                            y: pt.x
+                        }));
+                        this.choiceBlocks[idx].shape = rotated;
+                        audio.playRotate();
+                        this.drawPreviews();
+                    }
+                } else {
+                    // Check if dropped over canvas area
+                    const rect = this.canvas.getBoundingClientRect();
+                    const isOverCanvas = (
+                        e.clientX >= rect.left && e.clientX <= rect.right &&
+                        e.clientY >= rect.top && e.clientY <= rect.bottom + 50
+                    );
+                    
+                    if (isOverCanvas && this.ghostLandingBy >= 0) {
+                        // Drop successful
+                        this.activeBlock = {
+                            shape: this.dragBlock.shape,
+                            color: this.dragBlock.color,
+                            bx: this.ghostBx,
+                            by: 0,
+                            targetBy: this.ghostLandingBy
+                        };
+                        
+                        this.choiceBlocks[idx] = null; // Clear slot
+                        this.state = 'DROPPING';
+                        audio.playMove();
+                    }
+                }
+                
+                // Reset dragging state
+                this.dragActive = false;
+                this.dragSlotIdx = -1;
+                this.dragBlock = null;
+                this.ghostLandingBy = -1;
+                
+                e.preventDefault();
+            });
         }
     }
 }
