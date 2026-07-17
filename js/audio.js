@@ -40,7 +40,7 @@ class GameAudio {
             this.ctx = new AudioContextClass();
             
             this.masterVolume = this.ctx.createGain();
-            this.masterVolume.gain.setValueAtTime(0.3, this.ctx.currentTime); // 30% volume default
+            this.masterVolume.gain.setValueAtTime(0.15, this.ctx.currentTime); // 15% volume default (half as loud)
             this.masterVolume.connect(this.ctx.destination);
             
             console.log("Audio initialized successfully");
@@ -63,18 +63,18 @@ class GameAudio {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.08);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(350, this.ctx.currentTime + 0.1);
         
-        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
         
         osc.connect(gain);
         gain.connect(this.masterVolume);
         
         osc.start();
-        osc.stop(this.ctx.currentTime + 0.08);
+        osc.stop(this.ctx.currentTime + 0.1);
     }
 
     playRotate() {
@@ -87,10 +87,10 @@ class GameAudio {
         
         osc.type = 'sine';
         osc.frequency.setValueAtTime(280, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(450, this.ctx.currentTime + 0.12);
+        osc.frequency.exponentialRampToValueAtTime(420, this.ctx.currentTime + 0.12);
         
-        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
         
         osc.connect(gain);
         gain.connect(this.masterVolume);
@@ -105,7 +105,7 @@ class GameAudio {
         if (this.isMuted || !this.ctx) return;
 
         // Sand landing noise sound
-        const bufferSize = this.ctx.sampleRate * 0.06; // 60ms noise
+        const bufferSize = this.ctx.sampleRate * 0.08; // 80ms noise
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
         
@@ -118,18 +118,18 @@ class GameAudio {
         
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(250, this.ctx.currentTime);
+        filter.frequency.setValueAtTime(150, this.ctx.currentTime); // Lower center frequency for softer thud
         
         const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.08, this.ctx.currentTime); // Soft volume
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
         
         noise.connect(filter);
         filter.connect(gain);
         gain.connect(this.masterVolume);
         
         noise.start();
-        noise.stop(this.ctx.currentTime + 0.06);
+        noise.stop(this.ctx.currentTime + 0.08);
     }
 
     playClear() {
@@ -145,12 +145,12 @@ class GameAudio {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
             
-            osc.type = 'triangle';
+            osc.type = 'sine'; // Soft sine waves
             osc.frequency.setValueAtTime(freq, time);
             
             gain.gain.setValueAtTime(0.0, time);
-            gain.gain.linearRampToValueAtTime(0.2, time + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.25);
+            gain.gain.linearRampToValueAtTime(0.06, time + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
             
             osc.connect(gain);
             gain.connect(this.masterVolume);
@@ -170,17 +170,17 @@ class GameAudio {
         const osc2 = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
-        osc1.type = 'sawtooth';
-        osc1.frequency.setValueAtTime(150, now);
-        osc1.frequency.exponentialRampToValueAtTime(800, now + 0.4);
+        osc1.type = 'sine'; // Soft sine wave
+        osc1.frequency.setValueAtTime(220, now);
+        osc1.frequency.exponentialRampToValueAtTime(660, now + 0.4);
         
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(300, now);
-        osc2.frequency.exponentialRampToValueAtTime(1600, now + 0.4);
+        osc2.type = 'sine'; // Soft sine wave
+        osc2.frequency.setValueAtTime(440, now);
+        osc2.frequency.exponentialRampToValueAtTime(1320, now + 0.4);
         
         gain.gain.setValueAtTime(0.0, now);
-        gain.gain.linearRampToValueAtTime(0.15, now + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        gain.gain.linearRampToValueAtTime(0.05, now + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
         
         osc1.connect(gain);
         osc2.connect(gain);
@@ -209,7 +209,7 @@ class GameAudio {
             
             // Soft envelope
             gain.gain.setValueAtTime(0.0, now + idx * 0.12);
-            gain.gain.linearRampToValueAtTime(0.1, now + idx * 0.12 + 0.05);
+            gain.gain.linearRampToValueAtTime(0.05, now + idx * 0.12 + 0.05);
             gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.7);
             
             osc.connect(gain);

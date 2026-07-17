@@ -155,6 +155,14 @@ class GameController {
         };
     }
 
+    rotateBlock(block) {
+        if (!block || block.noRotate) return;
+        block.shape = block.shape.map(pt => ({
+            x: -pt.y,
+            y: pt.x
+        }));
+    }
+
     fillChoices() {
         for (let i = 0; i < 3; i++) {
             if (this.choiceBlocks[i] === null) {
@@ -820,26 +828,39 @@ class GameController {
                 
                 slot.releasePointerCapture(e.pointerId);
                 
-                // Check if dropped over canvas area
-                const rect = this.canvas.getBoundingClientRect();
-                const isOverCanvas = (
-                    e.clientX >= rect.left && e.clientX <= rect.right &&
-                    e.clientY >= rect.top && e.clientY <= rect.bottom + 50
-                );
+                // Calculate movement distance
+                const dx = e.clientX - this.dragStartPos.x;
+                const dy = e.clientY - this.dragStartPos.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const duration = Date.now() - this.dragStartTime;
                 
-                if (isOverCanvas && this.ghostBy >= 0 && this.ghostLandingBy >= 0) {
-                    // Drop successful: Fall starts from the release height (ghostBy)
-                    this.activeBlock = {
-                        shape: this.dragBlock.shape,
-                        color: this.dragBlock.color,
-                        bx: this.ghostBx,
-                        by: this.ghostBy,
-                        targetBy: this.ghostLandingBy
-                    };
+                // If it's a quick tap without much movement, rotate the block
+                if (duration < 250 && dist < 12) {
+                    this.rotateBlock(this.choiceBlocks[idx]);
+                    audio.playRotate();
+                    this.drawPreviews();
+                } else {
+                    // Check if dropped over canvas area
+                    const rect = this.canvas.getBoundingClientRect();
+                    const isOverCanvas = (
+                        e.clientX >= rect.left && e.clientX <= rect.right &&
+                        e.clientY >= rect.top && e.clientY <= rect.bottom + 50
+                    );
                     
-                    this.choiceBlocks[idx] = null; // Clear slot
-                    this.state = 'DROPPING';
-                    audio.playMove();
+                    if (isOverCanvas && this.ghostBy >= 0 && this.ghostLandingBy >= 0) {
+                        // Drop successful: Fall starts from the release height (ghostBy)
+                        this.activeBlock = {
+                            shape: this.dragBlock.shape,
+                            color: this.dragBlock.color,
+                            bx: this.ghostBx,
+                            by: this.ghostBy,
+                            targetBy: this.ghostLandingBy
+                        };
+                        
+                        this.choiceBlocks[idx] = null; // Clear slot
+                        this.state = 'DROPPING';
+                        audio.playMove();
+                    }
                 }
                 
                 // Reset dragging state
@@ -851,6 +872,19 @@ class GameController {
                 
                 e.preventDefault();
             });
+
+            const resetDragState = () => {
+                if (this.dragActive && this.dragSlotIdx === idx) {
+                    this.dragActive = false;
+                    this.dragSlotIdx = -1;
+                    this.dragBlock = null;
+                    this.ghostBy = -1;
+                    this.ghostLandingBy = -1;
+                }
+            };
+
+            slot.addEventListener('pointercancel', resetDragState);
+            slot.addEventListener('lostpointercapture', resetDragState);
         }
     }
 }

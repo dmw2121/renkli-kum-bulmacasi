@@ -46,10 +46,27 @@
                 </div>
 
                 <!-- Game Over Screen -->
-                <div id="game-over-screen" class="overlay">
-                    <span class="score-trophy">🏆</span>
-                    <span id="final-score" class="final-score-val">0</span>
-                    <button id="restart-button" class="btn btn-primary btn-glow btn-circle">🔄</button>
+                <div id="game-over-screen" class="overlay game-over-overlay">
+                    <div class="game-over-card">
+                        <span class="score-trophy">🏆</span>
+                        <h2 class="game-over-title">Harika Bir Denemeydi!</h2>
+                        <p class="game-over-desc">Tebrikler, çok güzel bir performans gösterdiniz.</p>
+                        
+                        <div class="stats-container">
+                            <div class="stat-row">
+                                <span class="stat-label">Toplam Skor:</span>
+                                <span id="final-score" class="stat-value">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Kazanılan Elmas:</span>
+                                <span class="stat-value text-secondary"><span id="earned-diamonds">+0</span> 💎</span>
+                            </div>
+                        </div>
+                        
+                        <button id="restart-button" class="btn btn-primary btn-glow btn-wide restart-btn">
+                            <span class="btn-icon">🔄</span> Tekrar Oyna
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Cyclone Target Cursor overlay (hidden by default) -->
