@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=5">
+    <link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
     <div class="app-container">
@@ -16,14 +16,12 @@
         <div class="game-cabinet">
             <!-- Top Dashboard -->
             <div class="dashboard">
-                <div class="high-score-box">
+                <div class="highscore-line">
                     <span class="trophy">🏆</span>
-                    <span id="high-score-value" class="value">0</span>
+                    <span id="high-score-value">0</span>
                 </div>
-                
-                <div class="score-box">
-                    <span class="score-icon">✨</span>
-                    <span id="score-value" class="value">0</span>
+                <div class="score-line">
+                    <span id="score-value">0</span>
                 </div>
             </div>
 
@@ -37,7 +35,8 @@
                 <!-- Screen Overlays -->
                 <!-- Start Screen -->
                 <div id="start-screen" class="overlay active">
-                    <button id="play-button" class="btn btn-primary btn-glow btn-huge">▶</button>
+                    <h1 class="game-title">SAND BLOCK<br><span class="highlight">MASTER PRO</span></h1>
+                    <button id="play-button" class="btn btn-primary btn-glow btn-wide">NEW GAME</button>
                 </div>
 
                 <!-- Pause Screen -->
@@ -111,8 +110,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/audio.js?v=5"></script>
-    <script src="js/physics.js?v=5"></script>
-    <script src="js/game.js?v=5"></script>
+    <script src="js/audio.js?v=6"></script>
+    <script src="js/physics.js?v=6"></script>
+    <script src="js/game.js?v=6"></script>
 </body>
 </html>

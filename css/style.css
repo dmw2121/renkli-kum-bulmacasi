@@ -71,36 +71,34 @@ body {
 /* Top Dashboard */
 .dashboard {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 2px;
+    padding: 5px 0 10px 0;
 }
 
-.high-score-box, .score-box {
-    background: rgba(255, 255, 255, 0.02);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    padding: 8px 16px;
+.highscore-line {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    opacity: 0.55;
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-width: 95px;
+    gap: 4px;
+    letter-spacing: 0.5px;
 }
 
-.high-score-box .value, .score-box .value {
-    font-size: 16px;
+.highscore-line .trophy {
+    font-size: 13px;
+    filter: drop-shadow(0 0 2px rgba(252, 211, 77, 0.4));
+}
+
+.score-line {
+    font-size: 42px;
     font-weight: 800;
     color: var(--color-text);
-}
-
-.high-score-box .trophy {
-    font-size: 16px;
-    filter: drop-shadow(0 0 4px rgba(252, 211, 77, 0.5));
-}
-
-.score-box .score-icon {
-    font-size: 16px;
-    filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.5));
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+    line-height: 1.1;
 }
 
 /* Board Wrapper & Warning Line */
@@ -176,24 +174,32 @@ body {
 
 .game-title {
     font-family: var(--font-primary);
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 800;
     line-height: 1.1;
-    color: #fff;
+    color: var(--color-text);
+    text-align: center;
+    margin-bottom: 25px;
+    letter-spacing: 1px;
 }
 
 .game-title .highlight {
     background: linear-gradient(45deg, var(--color-primary), var(--color-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 10px rgba(155, 93, 229, 0.2);
+    text-shadow: 0 0 10px rgba(155, 93, 229, 0.25);
 }
 
-.subtitle {
-    font-size: 13px;
-    color: var(--color-text-muted);
-    max-width: 250px;
-    line-height: 1.5;
+.btn-wide {
+    width: 80% !important;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 14px 0;
+    border-radius: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .overlay-title {
