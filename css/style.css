@@ -158,7 +158,9 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(12, 10, 21, 0.9);
+    background: rgba(10, 10, 12, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -220,34 +222,7 @@ body {
     text-shadow: 0 0 10px rgba(255, 0, 84, 0.5);
 }
 
-.stats-summary {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1.5px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 12px 18px;
-    width: 80%;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin: 10px 0;
-}
 
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 15px;
-    font-weight: 600;
-}
-
-.stat-val {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    color: var(--color-accent);
-}
-
-.text-cyan {
-    color: var(--color-secondary) !important;
-}
 
 .instructions-preview {
     margin-top: 15px;
@@ -329,10 +304,18 @@ body {
     padding: 0;
 }
 
-.gameover-icon {
+.score-trophy {
     font-size: 54px;
-    margin-bottom: 20px;
-    filter: drop-shadow(0 0 10px var(--color-danger));
+    margin-bottom: 5px;
+    filter: drop-shadow(0 0 12px rgba(252, 211, 77, 0.6));
+}
+
+.final-score-val {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--color-text);
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+    margin-bottom: 25px;
 }
 
 /* Choices Drawer & Slots */

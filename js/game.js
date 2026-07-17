@@ -328,8 +328,8 @@ class GameController {
         this.diamonds += bonusDiamonds;
         localStorage.setItem('sandtrix_diamonds', this.diamonds);
         
-        this.finalScoreEl.textContent = this.score;
-        this.earnedDiamondsEl.textContent = `+${bonusDiamonds}`;
+        if (this.finalScoreEl) this.finalScoreEl.textContent = this.score;
+        if (this.earnedDiamondsEl) this.earnedDiamondsEl.textContent = `+${bonusDiamonds}`;
         
         this.gameOverScreen.classList.add('active');
         this.updateUI();

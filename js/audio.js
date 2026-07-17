@@ -198,21 +198,26 @@ class GameAudio {
         if (this.isMuted || !this.ctx) return;
 
         const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+        const notes = [311.13, 261.63, 207.65]; // Eb4, C4, Ab3 (Gentle, elegant minor chime arpeggio)
         
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(350, now);
-        osc.frequency.linearRampToValueAtTime(80, now + 0.8);
-        
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.8);
-        
-        osc.connect(gain);
-        gain.connect(this.masterVolume);
-        
-        osc.start(now);
-        osc.stop(now + 0.8);
+        notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+            
+            // Soft envelope
+            gain.gain.setValueAtTime(0.0, now + idx * 0.12);
+            gain.gain.linearRampToValueAtTime(0.1, now + idx * 0.12 + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.7);
+            
+            osc.connect(gain);
+            gain.connect(this.masterVolume);
+            
+            osc.start(now + idx * 0.12);
+            osc.stop(now + idx * 0.12 + 0.7);
+        });
         
         this.stopMusic();
     }
