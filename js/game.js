@@ -3,15 +3,12 @@ const GRID_WIDTH = 40;
 const GRID_HEIGHT = 54;
 const WARNING_ROW = 12; // 22% of height (represented by the dashed red line)
 
-// Color Palette with HSL values for deterministic texture rendering
+// Color Palette with HSL values for deterministic texture rendering (exactly 4 colors)
 const COLOR_PALETTE = {
     'cyan':   { h: 190, s: 95, l: 55, hex: '#00f5d4' },
     'yellow': { h: 50,  s: 100, l: 60, hex: '#fee440' },
     'purple': { h: 280, s: 85,  l: 58, hex: '#9b5de5' },
-    'green':  { h: 145, s: 80,  l: 50, hex: '#00bbf9' }, // customized neon cyan/green
-    'red':    { h: 345, s: 90,  l: 55, hex: '#ff0054' },
-    'blue':   { h: 220, s: 90,  l: 55, hex: '#005f73' },
-    'orange': { h: 28,  s: 100, l: 55, hex: '#f77f00' }
+    'red':    { h: 345, s: 90,  l: 55, hex: '#ff0054' }
 };
 
 // Tetromino Definitions (Offset list from pivot)
@@ -30,7 +27,7 @@ const TETROMINOES = {
         shape: [ {x: 0, y: -1}, {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0} ]
     },
     'S': {
-        color: 'green',
+        color: 'cyan',
         shape: [ {x: 0, y: -1}, {x: 1, y: -1}, {x: -1, y: 0}, {x: 0, y: 0} ]
     },
     'Z': {
@@ -38,11 +35,11 @@ const TETROMINOES = {
         shape: [ {x: -1, y: -1}, {x: 0, y: -1}, {x: 0, y: 0}, {x: 1, y: 0} ]
     },
     'J': {
-        color: 'blue',
+        color: 'yellow',
         shape: [ {x: -1, y: -1}, {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0} ]
     },
     'L': {
-        color: 'orange',
+        color: 'purple',
         shape: [ {x: 1, y: -1}, {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0} ]
     }
 };
@@ -125,10 +122,8 @@ class GameController {
         this.ghostLandingBy = 0;
 
         // UI elements
-        this.levelEl = document.getElementById('level-value');
+        this.scoreEl = document.getElementById('score-value');
         this.highScoreEl = document.getElementById('high-score-value');
-        this.progressFillEl = document.getElementById('progress-fill');
-        this.progressTextEl = document.getElementById('score-progress-text');
         this.diamondEl = document.getElementById('diamond-value');
         this.finalScoreEl = document.getElementById('final-score');
         this.earnedDiamondsEl = document.getElementById('earned-diamonds');
@@ -353,17 +348,6 @@ class GameController {
 
     addPoints(pts) {
         this.score += pts;
-        this.pointsAccumulatedThisLevel += pts;
-        
-        // Check level up
-        if (this.pointsAccumulatedThisLevel >= this.pointsForNextLevel) {
-            this.level++;
-            this.pointsAccumulatedThisLevel -= this.pointsForNextLevel;
-            
-            // Increase speed (decrease tick limit)
-            this.tickLimit = Math.max(8, 40 - (this.level * 3));
-            audio.playPowerup();
-        }
         
         if (this.score > this.highScore) {
             this.highScore = this.score;
@@ -381,14 +365,9 @@ class GameController {
     }
 
     updateUI() {
-        this.levelEl.textContent = this.level;
-        this.highScoreEl.textContent = this.highScore.toLocaleString('tr-TR');
-        this.diamondEl.textContent = this.diamonds;
-        
-        // Level Progress bar
-        const progressPercentage = Math.min(100, (this.pointsAccumulatedThisLevel / this.pointsForNextLevel) * 100);
-        this.progressFillEl.style.width = `${progressPercentage}%`;
-        this.progressTextEl.textContent = `${this.score.toLocaleString('tr-TR')} / ${(this.level * this.pointsForNextLevel).toLocaleString('tr-TR')}`;
+        if (this.highScoreEl) this.highScoreEl.textContent = this.highScore.toLocaleString('tr-TR');
+        if (this.scoreEl) this.scoreEl.textContent = this.score.toLocaleString('tr-TR');
+        if (this.diamondEl) this.diamondEl.textContent = this.diamonds;
     }
 
     startGame() {
@@ -513,7 +492,7 @@ class GameController {
 
     render() {
         // Clear Canvas
-        this.ctx.fillStyle = '#07050e';
+        this.ctx.fillStyle = '#0f0f11';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw warning area overlay background (above warning row)
@@ -631,7 +610,7 @@ class GameController {
     }
 
     drawSinglePreview(ctx, canvas, block) {
-        ctx.fillStyle = '#07050e';
+        ctx.fillStyle = '#0f0f11';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         if (!block) return;
 

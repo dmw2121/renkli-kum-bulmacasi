@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=4">
+    <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
     <div class="app-container">
@@ -16,23 +16,14 @@
         <div class="game-cabinet">
             <!-- Top Dashboard -->
             <div class="dashboard">
-                <div class="level-box">
-                    <span class="label">SEVİYE</span>
-                    <span id="level-value" class="value">1</span>
+                <div class="high-score-box">
+                    <span class="trophy">🏆</span>
+                    <span id="high-score-value" class="value">0</span>
                 </div>
                 
-                <div class="score-progress-container">
-                    <div class="high-score-row">
-                        <span id="high-score-value">0</span>
-                        <span class="trophy">🏆</span>
-                    </div>
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-bar-fill" id="progress-fill" style="width: 0%;"></div>
-                        <div class="progress-text-container">
-                            <span class="sand-icon">⏳</span>
-                            <span id="score-progress-text">0 / 1000</span>
-                        </div>
-                    </div>
+                <div class="score-box">
+                    <span class="score-icon">✨</span>
+                    <span id="score-value" class="value">0</span>
                 </div>
             </div>
 
@@ -46,63 +37,47 @@
                 <!-- Screen Overlays -->
                 <!-- Start Screen -->
                 <div id="start-screen" class="overlay active">
-                    <h1 class="game-title">RENKLİ KUM<br><span class="highlight">BULMACASI</span></h1>
-                    <p class="subtitle">Düşen bloklar kuma dönüşüyor! Aynı renkteki kumları yatay olarak bir uçtan diğerine bağla ve erit.</p>
-                    <button id="play-button" class="btn btn-primary btn-glow">OYNA</button>
-                    
-                    <div class="instructions-preview">
-                        <h3>Kontroller</h3>
-                        <div class="controls-grid">
-                            <div><span class="key">A</span> / <span class="key">←</span> : Sola</div>
-                            <div><span class="key">D</span> / <span class="key">→</span> : Sağa</div>
-                            <div><span class="key">W</span> / <span class="key">↑</span> : Döndür</div>
-                            <div><span class="key">S</span> / <span class="key">↓</span> : Yavaş Düşüş</div>
-                            <div><span class="key">Space</span> : Sert Düşüş</div>
-                        </div>
-                    </div>
+                    <button id="play-button" class="btn btn-primary btn-glow btn-huge">▶</button>
                 </div>
 
                 <!-- Pause Screen -->
                 <div id="pause-screen" class="overlay">
-                    <h2 class="overlay-title">OYUN DURAKLATILDI</h2>
-                    <button id="resume-button" class="btn btn-primary btn-glow">DEVAM ET</button>
-                    <button id="restart-from-pause" class="btn btn-secondary">YENİDEN BAŞLAT</button>
+                    <button id="resume-button" class="btn btn-primary btn-glow btn-huge">▶</button>
+                    <button id="restart-from-pause" class="btn btn-secondary btn-circle">🔄</button>
                 </div>
 
                 <!-- Game Over Screen -->
                 <div id="game-over-screen" class="overlay">
-                    <h2 class="overlay-title text-danger">OYUN BİTTİ</h2>
+                    <div class="gameover-icon">💀</div>
                     <div class="stats-summary">
                         <div class="stat-row">
-                            <span>Skor:</span>
+                            <span class="score-icon">✨</span>
                             <span id="final-score" class="stat-val">0</span>
                         </div>
                         <div class="stat-row">
-                            <span>Kazanılan Elmas:</span>
+                            <span class="diamond-icon">💎</span>
                             <span id="earned-diamonds" class="stat-val text-cyan">+0</span>
                         </div>
                     </div>
-                    <button id="restart-button" class="btn btn-primary btn-glow">TEKRAR DENE</button>
+                    <button id="restart-button" class="btn btn-primary btn-glow btn-circle">🔄</button>
                 </div>
 
                 <!-- Cyclone Target Cursor overlay (hidden by default) -->
                 <div id="cyclone-cursor" class="cyclone-aim-overlay">
                     <div class="cyclone-vortex-aim"></div>
-                    <div class="aim-text">Temizlemek için tıkla</div>
                 </div>
             </div>
 
             <!-- Choices Area (3 Drag-and-Drop options) -->
             <div class="choices-drawer">
-                <span class="choices-label">DÖNDÜRMEK İÇİN TIKLA, SÜRÜKLE BIRAK:</span>
                 <div class="choice-slots">
-                    <div class="choice-slot" id="choice-0" title="Döndürmek için tıkla, yerleştirmek için sürükle">
+                    <div class="choice-slot" id="choice-0">
                         <canvas id="choice-canvas-0" width="80" height="80"></canvas>
                     </div>
-                    <div class="choice-slot" id="choice-1" title="Döndürmek için tıkla, yerleştirmek için sürükle">
+                    <div class="choice-slot" id="choice-1">
                         <canvas id="choice-canvas-1" width="80" height="80"></canvas>
                     </div>
-                    <div class="choice-slot" id="choice-2" title="Döndürmek için tıkla, yerleştirmek için sürükle">
+                    <div class="choice-slot" id="choice-2">
                         <canvas id="choice-canvas-2" width="80" height="80"></canvas>
                     </div>
                 </div>
@@ -136,8 +111,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/audio.js?v=4"></script>
-    <script src="js/physics.js?v=4"></script>
-    <script src="js/game.js?v=4"></script>
+    <script src="js/audio.js?v=5"></script>
+    <script src="js/physics.js?v=5"></script>
+    <script src="js/game.js?v=5"></script>
 </body>
 </html>
