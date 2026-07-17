@@ -585,22 +585,28 @@ class GameController {
         this.offscreenCtx.putImageData(imgData, 0, 0);
         this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw Active Block (Neon glow + granular layout) during rapid fall
+        // Draw Active Block (Neon glow + optimized unit squares) during rapid fall
         if (this.activeBlock) {
             const pal = COLOR_PALETTE[this.activeBlock.color];
-            const cells = this.getHighResCells(this.activeBlock.bx, this.activeBlock.by, this.activeBlock.shape);
-            
             this.ctx.save();
             this.ctx.shadowBlur = 8;
             this.ctx.shadowColor = pal.hex;
+            this.ctx.fillStyle = pal.hex;
             
-            cells.forEach(cell => {
-                if (cell.y >= 0) {
-                    this.ctx.fillStyle = pal.hex;
-                    this.ctx.fillRect(cell.x * this.cellW, cell.y * this.cellH, this.cellW, this.cellH);
-                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-                    this.ctx.lineWidth = 1;
-                    this.ctx.strokeRect(cell.x * this.cellW + 0.5, cell.y * this.cellH + 0.5, this.cellW - 1, this.cellH - 1);
+            const scale = 12;
+            const unitW = scale * this.cellW;
+            const unitH = scale * this.cellH;
+            
+            this.activeBlock.shape.forEach(offset => {
+                const px = (this.activeBlock.bx + offset.x * scale) * this.cellW;
+                const py = (this.activeBlock.by + offset.y * scale) * this.cellH;
+                
+                if (py + unitH >= 0) {
+                    this.ctx.fillRect(px, py, unitW, unitH);
+                    
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+                    this.ctx.lineWidth = 1.5;
+                    this.ctx.strokeRect(px + 0.5, py + 0.5, unitW - 1, unitH - 1);
                 }
             });
             this.ctx.restore();
@@ -609,26 +615,32 @@ class GameController {
         // Draw Ghost Block & Dragging Block during drag-and-drop
         if (this.state === 'PLAYING' && this.dragActive && this.dragBlock) {
             const pal = COLOR_PALETTE[this.dragBlock.color];
+            const scale = 12;
+            const unitW = scale * this.cellW;
+            const unitH = scale * this.cellH;
             
-            // 1. Draw Ghost Block Landing Spot (translucent)
+            // 1. Draw Ghost Block Landing Spot (translucent unit squares)
             if (this.ghostLandingBy >= 0) {
-                const ghostCells = this.getHighResCells(this.ghostBx, this.ghostLandingBy, this.dragBlock.shape);
                 this.ctx.save();
                 this.ctx.globalAlpha = 0.25;
-                ghostCells.forEach(cell => {
-                    if (cell.y >= 0) {
-                        this.ctx.fillStyle = pal.hex;
-                        this.ctx.fillRect(cell.x * this.cellW, cell.y * this.cellH, this.cellW, this.cellH);
+                this.ctx.fillStyle = pal.hex;
+                
+                this.dragBlock.shape.forEach(offset => {
+                    const px = (this.ghostBx + offset.x * scale) * this.cellW;
+                    const py = (this.ghostLandingBy + offset.y * scale) * this.cellH;
+                    
+                    if (py + unitH >= 0) {
+                        this.ctx.fillRect(px, py, unitW, unitH);
+                        
                         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                        this.ctx.lineWidth = 1;
-                        this.ctx.strokeRect(cell.x * this.cellW + 0.5, cell.y * this.cellH + 0.5, this.cellW - 1, this.cellH - 1);
+                        this.ctx.lineWidth = 1.5;
+                        this.ctx.strokeRect(px + 0.5, py + 0.5, unitW - 1, unitH - 1);
                     }
                 });
                 this.ctx.restore();
             }
             
-            // 2. Draw Dragged Block centered under finger/cursor
-            const scale = 12;
+            // 2. Draw Dragged Block centered under finger/cursor (unit squares)
             let minX = 99, maxX = -99, minY = 99, maxY = -99;
             this.dragBlock.shape.forEach(pt => {
                 if (pt.x < minX) minX = pt.x;
@@ -645,16 +657,14 @@ class GameController {
             this.ctx.fillStyle = pal.hex;
             
             this.dragBlock.shape.forEach(pt => {
-                for (let dy = 0; dy < scale; dy++) {
-                    for (let dx = 0; dx < scale; dx++) {
-                        const px = this.pointerPos.x + (pt.x - cx) * scale * this.cellW + dx * this.cellW;
-                        const py = this.pointerPos.y + (pt.y - cy) * scale * this.cellH + dy * this.cellH;
-                        
-                        this.ctx.fillRect(px, py, this.cellW, this.cellH);
-                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-                        this.ctx.strokeRect(px + 0.5, py + 0.5, this.cellW - 1, this.cellH - 1);
-                    }
-                }
+                const px = this.pointerPos.x + (pt.x - cx) * unitW;
+                const py = this.pointerPos.y + (pt.y - cy) * unitH;
+                
+                this.ctx.fillRect(px, py, unitW, unitH);
+                
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+                this.ctx.lineWidth = 1.5;
+                this.ctx.strokeRect(px + 0.5, py + 0.5, unitW - 1, unitH - 1);
             });
             this.ctx.restore();
         }
