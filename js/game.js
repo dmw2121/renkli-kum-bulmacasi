@@ -1,5 +1,5 @@
 // Game Configuration and State Management
-const GRID_WIDTH = 120;
+const GRID_WIDTH = 144;
 const GRID_HEIGHT = 162;
 const WARNING_ROW = 36; // 22% of height (represented by the dashed red line)
 
