@@ -217,135 +217,18 @@ class GameAudio {
         this.stopMusic();
     }
 
-    // Background Music Logic
-    startMusic() {
-        this.init();
-        this.resume();
-        if (this.isMuted || !this.ctx) return;
-        if (this.musicIntervalId) return; // Already running
-        
-        this.nextNoteTime = this.ctx.currentTime;
-        this.currentStep = 0;
-        
-        this.musicIntervalId = setInterval(() => {
-            this.scheduler();
-        }, this.lookahead);
-    }
-
-    stopMusic() {
-        if (this.musicIntervalId) {
-            clearInterval(this.musicIntervalId);
-            this.musicIntervalId = null;
-        }
-    }
-
-    scheduler() {
-        while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
-            this.scheduleNextStep(this.currentStep, this.nextNoteTime);
-            this.advanceStep();
-        }
-    }
-
-    advanceStep() {
-        const secondsPerBeat = 60.0 / this.bpm;
-        const stepDuration = 0.25 * secondsPerBeat; // 16th notes
-        this.nextNoteTime += stepDuration;
-        
-        this.currentStep = (this.currentStep + 1) % 16;
-    }
-
-    scheduleNextStep(step, time) {
-        // Kick Drum Synthesizer (Steps 0, 4, 8, 12)
-        if (step % 4 === 0) {
-            this.triggerSynthKick(time);
-        }
-        
-        // Synth Bassline
-        const bassNote = this.bassline[step];
-        if (bassNote) {
-            const freq = this.noteFreqs[bassNote];
-            this.triggerSynthBass(freq, time);
-        }
-        
-        // Melody Synths (quieter, ambient)
-        const melodyNote = this.melody[step];
-        if (melodyNote && step % 2 === 0 && Math.random() < 0.8) {
-            const freq = this.noteFreqs[melodyNote];
-            this.triggerSynthMelody(freq, time);
-        }
-    }
-
-    triggerSynthKick(time) {
-        if (!this.ctx) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        
-        osc.frequency.setValueAtTime(150, time);
-        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.12);
-        
-        gain.gain.setValueAtTime(0.22, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.12);
-        
-        osc.connect(gain);
-        gain.connect(this.masterVolume);
-        
-        osc.start(time);
-        osc.stop(time + 0.12);
-    }
-
-    triggerSynthBass(freq, time) {
-        if (!this.ctx || !freq) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, time);
-        
-        // Short plucky bass notes
-        gain.gain.setValueAtTime(0.18, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
-        
-        osc.connect(gain);
-        gain.connect(this.masterVolume);
-        
-        osc.start(time);
-        osc.stop(time + 0.15);
-    }
-
-    triggerSynthMelody(freq, time) {
-        if (!this.ctx || !freq) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const filter = this.ctx.createBiquadFilter();
-        
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, time);
-        
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(800, time);
-        filter.Q.setValueAtTime(1.0, time);
-        
-        // Ambient soft melody
-        gain.gain.setValueAtTime(0.0, time);
-        gain.gain.linearRampToValueAtTime(0.06, time + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
-        
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.masterVolume);
-        
-        osc.start(time);
-        osc.stop(time + 0.25);
-    }
+    // Background Music Logic (Disabled)
+    startMusic() {}
+    stopMusic() {}
+    scheduler() {}
+    advanceStep() {}
+    scheduleNextStep() {}
+    triggerSynthKick() {}
+    triggerSynthBass() {}
+    triggerSynthMelody() {}
 
     toggleMute() {
-        this.isMuted = !this.isMuted;
-        if (this.isMuted) {
-            this.stopMusic();
-        } else {
-            this.startMusic();
-        }
-        return this.isMuted;
+        return true;
     }
 }
 

@@ -121,6 +121,7 @@ class GameController {
         
         // Ghost placement calculation
         this.ghostBx = 0;
+        this.ghostBy = 0;
         this.ghostLandingBy = 0;
 
         // UI elements
@@ -771,18 +772,22 @@ class GameController {
                 // Convert screen coordinates to canvas coordinates
                 const rect = this.canvas.getBoundingClientRect();
                 const xLocal = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+                const yLocal = (e.clientY - rect.top) * (this.canvas.height / rect.height);
                 
                 const scale = 4;
                 const gx = Math.floor(xLocal / this.cellW);
-                const cx = Math.floor((minX + maxX) / 2);
+                const gy = Math.floor(yLocal / this.cellH);
                 
-                // Align block horizontal position centered on pointer
+                const cx = Math.floor((minX + maxX) / 2);
+                const cy = Math.floor((minY + maxY) / 2);
+                
+                // Align block horizontal and vertical position centered on pointer
                 this.ghostBx = gx - cx * scale;
+                let proposedBy = gy - cy * scale;
                 
                 // Clamp bx so all units fall within GRID_WIDTH
                 const minHighResX = minX * scale;
                 const maxHighResX = maxX * scale + (scale - 1);
-                
                 if (this.ghostBx + minHighResX < 0) {
                     this.ghostBx = -minHighResX;
                 }
@@ -790,12 +795,33 @@ class GameController {
                     this.ghostBx = GRID_WIDTH - 1 - maxHighResX;
                 }
                 
-                // Find landing spot by dropping down vertically
-                let by = 0;
-                while (by < GRID_HEIGHT && this.isValidPosition(this.dragBlock.shape, this.ghostBx, by)) {
-                    by++;
+                // Clamp proposedBy so all units stay within GRID_HEIGHT
+                const minHighResY = minY * scale;
+                const maxHighResY = maxY * scale + (scale - 1);
+                if (proposedBy + minHighResY < 0) {
+                    proposedBy = -minHighResY;
                 }
-                this.ghostLandingBy = by - 1;
+                if (proposedBy + maxHighResY >= GRID_HEIGHT) {
+                    proposedBy = GRID_HEIGHT - 1 - maxHighResY;
+                }
+                
+                // If the proposed release position overlaps sand, slide upwards to find a valid spot
+                let testBy = proposedBy;
+                while (testBy >= -minHighResY && !this.isValidPosition(this.dragBlock.shape, this.ghostBx, testBy)) {
+                    testBy--;
+                }
+                this.ghostBy = testBy;
+                
+                if (this.ghostBy >= -minHighResY) {
+                    // Find landing spot by dropping down vertically starting from the release height
+                    let by = this.ghostBy;
+                    while (by < GRID_HEIGHT && this.isValidPosition(this.dragBlock.shape, this.ghostBx, by)) {
+                        by++;
+                    }
+                    this.ghostLandingBy = by - 1;
+                } else {
+                    this.ghostLandingBy = -1;
+                }
                 
                 e.preventDefault();
             });
@@ -805,50 +831,33 @@ class GameController {
                 
                 slot.releasePointerCapture(e.pointerId);
                 
-                const duration = Date.now() - this.dragStartTime;
-                const dx = e.clientX - this.dragStartPos.x;
-                const dy = e.clientY - this.dragStartPos.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
+                // Check if dropped over canvas area
+                const rect = this.canvas.getBoundingClientRect();
+                const isOverCanvas = (
+                    e.clientX >= rect.left && e.clientX <= rect.right &&
+                    e.clientY >= rect.top && e.clientY <= rect.bottom + 50
+                );
                 
-                // If quick tap, rotate block clockwise
-                if (duration < 250 && dist < 8) {
-                    if (!this.dragBlock.noRotate) {
-                        const rotated = this.dragBlock.shape.map(pt => ({
-                            x: -pt.y,
-                            y: pt.x
-                        }));
-                        this.choiceBlocks[idx].shape = rotated;
-                        audio.playRotate();
-                        this.drawPreviews();
-                    }
-                } else {
-                    // Check if dropped over canvas area
-                    const rect = this.canvas.getBoundingClientRect();
-                    const isOverCanvas = (
-                        e.clientX >= rect.left && e.clientX <= rect.right &&
-                        e.clientY >= rect.top && e.clientY <= rect.bottom + 50
-                    );
+                if (isOverCanvas && this.ghostBy >= 0 && this.ghostLandingBy >= 0) {
+                    // Drop successful: Fall starts from the release height (ghostBy)
+                    this.activeBlock = {
+                        shape: this.dragBlock.shape,
+                        color: this.dragBlock.color,
+                        bx: this.ghostBx,
+                        by: this.ghostBy,
+                        targetBy: this.ghostLandingBy
+                    };
                     
-                    if (isOverCanvas && this.ghostLandingBy >= 0) {
-                        // Drop successful
-                        this.activeBlock = {
-                            shape: this.dragBlock.shape,
-                            color: this.dragBlock.color,
-                            bx: this.ghostBx,
-                            by: 0,
-                            targetBy: this.ghostLandingBy
-                        };
-                        
-                        this.choiceBlocks[idx] = null; // Clear slot
-                        this.state = 'DROPPING';
-                        audio.playMove();
-                    }
+                    this.choiceBlocks[idx] = null; // Clear slot
+                    this.state = 'DROPPING';
+                    audio.playMove();
                 }
                 
                 // Reset dragging state
                 this.dragActive = false;
                 this.dragSlotIdx = -1;
                 this.dragBlock = null;
+                this.ghostBy = -1;
                 this.ghostLandingBy = -1;
                 
                 e.preventDefault();
