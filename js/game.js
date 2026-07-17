@@ -151,13 +151,28 @@ class GameController {
         }
     }
 
+    getHighResCells(bx, by, shape, scale = 4) {
+        const cells = [];
+        shape.forEach(offset => {
+            for (let dy = 0; dy < scale; dy++) {
+                for (let dx = 0; dx < scale; dx++) {
+                    cells.push({
+                        x: bx + offset.x * scale + dx,
+                        y: by + offset.y * scale + dy
+                    });
+                }
+            }
+        });
+        return cells;
+    }
+
     spawnBlock() {
         this.fillQueue();
         this.activeBlock = this.nextQueue.shift();
         
-        // Position at top center
+        // Position at top center (high-res coordinates)
         this.activeBlock.bx = Math.floor(GRID_WIDTH / 2);
-        this.activeBlock.by = 2; // slightly offset from very top
+        this.activeBlock.by = 4; // Spawn slightly below the top to fit shape
         
         this.isFastDropping = false;
         this.tickCounter = 0;
@@ -171,18 +186,16 @@ class GameController {
     }
 
     isValidPosition(shape, bx, by) {
-        for (const offset of shape) {
-            const gx = bx + offset.x;
-            const gy = by + offset.y;
-            
+        const cells = this.getHighResCells(bx, by, shape);
+        for (const cell of cells) {
             // Wall boundaries
-            if (gx < 0 || gx >= GRID_WIDTH || gy >= GRID_HEIGHT) {
+            if (cell.x < 0 || cell.x >= GRID_WIDTH || cell.y >= GRID_HEIGHT) {
                 return false;
             }
             
             // Allow pieces to rotate above top threshold (gy < 0 is fine, but check grid bounds)
-            if (gy >= 0) {
-                if (this.physics.grid[gy][gx] !== 0) {
+            if (cell.y >= 0) {
+                if (this.physics.grid[cell.y][cell.x] !== 0) {
                     return false; // collides with existing sand
                 }
             }
@@ -219,11 +232,13 @@ class GameController {
             return;
         }
         
-        // Wall kick logic: try shifting left, right, or up
+        // Wall kick logic: try shifting unit-steps (4 cells) and micro-steps (1-3 cells)
         const kicks = [
+            { dx: -4, dy: 0 }, { dx: 4, dy: 0 },
             { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
             { dx: -2, dy: 0 }, { dx: 2, dy: 0 },
-            { dx: 0, dy: -1 }
+            { dx: -3, dy: 0 }, { dx: 3, dy: 0 },
+            { dx: 0, dy: -4 }, { dx: 0, dy: -1 }
         ];
         
         for (const kick of kicks) {
@@ -248,32 +263,27 @@ class GameController {
     }
 
     lockActiveBlock() {
+        const cells = this.getHighResCells(this.activeBlock.bx, this.activeBlock.by, this.activeBlock.shape);
+        
         // Disintegrate block into sand grains
-        this.activeBlock.shape.forEach(offset => {
-            const gx = this.activeBlock.bx + offset.x;
-            const gy = this.activeBlock.by + offset.y;
-            
-            if (gy >= 0 && gy < GRID_HEIGHT && gx >= 0 && gx < GRID_WIDTH) {
-                this.physics.grid[gy][gx] = this.activeBlock.color;
+        cells.forEach(cell => {
+            if (cell.y >= 0 && cell.y < GRID_HEIGHT && cell.x >= 0 && cell.x < GRID_WIDTH) {
+                this.physics.grid[cell.y][cell.x] = this.activeBlock.color;
             }
         });
         
         // Spawn small dust landing particles
-        this.activeBlock.shape.forEach(offset => {
-            const gx = this.activeBlock.bx + offset.x;
-            const gy = this.activeBlock.by + offset.y;
-            if (gy >= 0 && gy < GRID_HEIGHT) {
+        cells.forEach(cell => {
+            if (cell.y >= 0 && cell.y < GRID_HEIGHT) {
                 const colorHex = COLOR_PALETTE[this.activeBlock.color].hex;
-                for (let i = 0; i < 2; i++) {
-                    this.particles.push(new Particle(
-                        gx + Math.random(),
-                        gy + Math.random(),
-                        colorHex,
-                        (Math.random() - 0.5) * 1.5,
-                        (Math.random() - 1.0) * 1.0,
-                        20 + Math.floor(Math.random() * 15)
-                    ));
-                }
+                this.particles.push(new Particle(
+                    cell.x + Math.random(),
+                    cell.y + Math.random(),
+                    colorHex,
+                    (Math.random() - 0.5) * 1.5,
+                    (Math.random() - 1.0) * 1.0,
+                    20 + Math.floor(Math.random() * 15)
+                ));
             }
         });
         
@@ -592,27 +602,25 @@ class GameController {
             }
         }
 
-        // Draw Active Block (Neon glow + solid color)
+        // Draw Active Block (Neon glow + granular layout)
         if (this.state === 'PLAYING' && this.activeBlock) {
             const pal = COLOR_PALETTE[this.activeBlock.color];
+            const cells = this.getHighResCells(this.activeBlock.bx, this.activeBlock.by, this.activeBlock.shape);
             
             this.ctx.save();
             this.ctx.shadowBlur = 8;
             this.ctx.shadowColor = pal.hex;
             
-            this.activeBlock.shape.forEach(offset => {
-                const gx = this.activeBlock.bx + offset.x;
-                const gy = this.activeBlock.by + offset.y;
-                
-                if (gy >= 0) {
-                    // Draw filled block
+            cells.forEach(cell => {
+                if (cell.y >= 0) {
+                    // Draw grain filled block
                     this.ctx.fillStyle = pal.hex;
-                    this.ctx.fillRect(gx * this.cellW, gy * this.cellH, this.cellW, this.cellH);
+                    this.ctx.fillRect(cell.x * this.cellW, cell.y * this.cellH, this.cellW, this.cellH);
                     
-                    // Draw clean outline overlay
-                    this.ctx.strokeStyle = '#ffffff';
+                    // Draw subtle grid outline for grain texture
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
                     this.ctx.lineWidth = 1;
-                    this.ctx.strokeRect(gx * this.cellW + 0.5, gy * this.cellH + 0.5, this.cellW - 1, this.cellH - 1);
+                    this.ctx.strokeRect(cell.x * this.cellW + 0.5, cell.y * this.cellH + 0.5, this.cellW - 1, this.cellH - 1);
                 }
             });
             this.ctx.restore();
@@ -643,7 +651,7 @@ class GameController {
 
         const pal = COLOR_PALETTE[block.color];
         
-        // Find bounding box to center block in canvas
+        // Find bounding box to center block in canvas (standard units)
         let minX = 99, maxX = -99, minY = 99, maxY = -99;
         block.shape.forEach(pt => {
             if (pt.x < minX) minX = pt.x;
@@ -655,19 +663,26 @@ class GameController {
         const spanX = maxX - minX + 1;
         const spanY = maxY - minY + 1;
         
-        const size = 9; // Size of preview blocks
-        const offsetX = (canvas.width - spanX * size) / 2 - minX * size;
-        const offsetY = (canvas.height - spanY * size) / 2 - minY * size;
+        const scale = 4;
+        const cellSize = 2.2; // Size of each small grain in preview
+        const unitSize = scale * cellSize; // Width/height of one tetromino unit (e.g. 8.8px)
+        
+        const offsetX = (canvas.width - spanX * unitSize) / 2 - minX * unitSize;
+        const offsetY = (canvas.height - spanY * unitSize) / 2 - minY * unitSize;
 
         ctx.save();
-        ctx.shadowBlur = 4;
-        ctx.shadowColor = pal.hex;
         ctx.fillStyle = pal.hex;
         
         block.shape.forEach(pt => {
-            ctx.fillRect(pt.x * size + offsetX, pt.y * size + offsetY, size - 1, size - 1);
-            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-            ctx.strokeRect(pt.x * size + offsetX, pt.y * size + offsetY, size - 1, size - 1);
+            // Draw 4x4 sub-cells for this unit
+            for (let dy = 0; dy < scale; dy++) {
+                for (let dx = 0; dx < scale; dx++) {
+                    const cx = pt.x * unitSize + dx * cellSize + offsetX;
+                    const cy = pt.y * unitSize + dy * cellSize + offsetY;
+                    
+                    ctx.fillRect(cx, cy, cellSize - 0.4, cellSize - 0.4);
+                }
+            }
         });
         
         ctx.restore();
